@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+/* Jika kamu ingin menambahkan sedikit kustomisasi font global, cukup tulis sesimpel ini: */
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    sans-serif;
+  background-color: #f8fafc; /* Warna slate-50 yang bersih */
+}
