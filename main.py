@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# Mengizinkan CORS agar frontend Netlify bisa berkomunikasi dengan Railway
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,11 +27,14 @@ class MahasiswaData(BaseModel):
     motivasi_karir: int
     lingkungan_ideal: int
 
+# --- TAMBAHKAN RUTE INI AGAR TIDAK 404 ---
+@app.get("/")
+def home():
+    return {"status": "Server FastAPI berjalan lancar!", "endpoint_prediksi": "/predict"}
+
 @app.post("/predict")
 def predict(data: MahasiswaData):
-    # --- ALGORITMA PENILAIAN INTEGRASI (AKADEMIK + MINAT + PSIKOLOGI) ---
-    
-    # AI condong ke teori/pola data (gaya_kerja tinggi)
+    # AI condong ke teori/pola data
     skor_ai = data.nilai_ml + data.minat_ai + (data.gaya_kerja * 0.5)
     
     # SE condong ke penelusuran arsitektur kode & produk nyata
