@@ -70,21 +70,35 @@ export default function App() {
     lingkungan_ideal: 3,
   });
 
-  const fetchStatistics = async () => {
+ const fetchStatistics = async () => {
     try {
       const { data, error } = await supabase.from('peminatan').select('rekomendasi');
       if (error) throw error;
+      
       if (data && data.length > 0) {
         const counts = { AI: 0, SE: 0, CN: 0 };
-        data.forEach((row) => {
-          if (counts[row.rekomendasi] !== undefined) counts[row.rekomendasi]++;
+        
+        // Hanya hitung data yang valid AI, SE, atau CN
+        data.forEach(row => { 
+          if (counts[row.rekomendasi] !== undefined) {
+            counts[row.rekomendasi]++; 
+          }
         });
-        setStats({ total: data.length, ...counts });
+        
+        // KUNCI PERBAIKAN: Total adalah jumlah murni dari ketiga klaster
+        const totalValid = counts.AI + counts.SE + counts.CN;
+        
+        setStats({ 
+          total: totalValid, 
+          AI: counts.AI, 
+          SE: counts.SE, 
+          CN: counts.CN 
+        });
       } else {
         setStats({ total: 0, AI: 0, SE: 0, CN: 0 });
       }
     } catch (err) {
-      console.error('Gagal mengambil statistik:', err);
+      console.error("Gagal mengambil statistik:", err);
     }
   };
 
