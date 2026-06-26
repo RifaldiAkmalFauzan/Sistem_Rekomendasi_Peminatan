@@ -263,7 +263,7 @@ export default function App() {
                     />
                   </div>
                   <div className="field-group">
-                    <label className="field-label">Kelas / Angkatan (Contoh: IF-4A)</label>
+                    <label className="field-label">Kelas / Angkatan (Contoh: TI24-B)</label>
                     <input
                       type="text"
                       className="field-input"
