@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-// UBAH BARIS INI:
 import { createClient } from '@supabase/supabase-js';
 import './App.css';
 
-// 📢 1. PENGATURAN SUPABASE (Sudah otomatis membaca dari file .env kamu)
+// 📢 KONFIGURASI SUPABASE (Menggunakan nama key Netlify kamu)
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -40,7 +39,7 @@ const TRACK_DETAILS = {
 
 function App() {
   // --- STATES ---
-  const [page, setPage] = useState('welcome'); // welcome, quiz, result
+  const [page, setPage] = useState('welcome');
   const [rekomendasi, setRekomendasi] = useState(null);
   const [namaResponden, setNamaResponden] = useState('');
   const [stats, setStats] = useState({ total: 0, AI: 0, SE: 0, CN: 0 });
@@ -61,24 +60,22 @@ function App() {
     lingkungan_ideal: 3,
   });
 
-  // --- 2. LOGIKA SYNC DATA SAAT WEB DIBUKA ---
+  // --- LOGIKA SYNC DATA DARI GOOGLE FORM VIA URL ---
   useEffect(() => {
     fetchStatistics();
 
-    // Deteksi parameter URL (?page=result&source=gform)
     const queryParams = new URLSearchParams(window.location.search);
     if (queryParams.get('page') === 'result') {
       setPage('result');
 
-      // Jika user datang setelah klik redirect dari Google Form
       if (queryParams.get('source') === 'gform') {
         const fetchLatestGformData = async () => {
           try {
-            // Tarik 1 baris data paling terakhir (terbaru) dimasukkan ke Supabase oleh GForm
+            // Ambil data paling baru masuk dari database Supabase
             const { data, error } = await supabase
               .from('peminatan')
               .select('nama, rekomendasi')
-              .order('id', { ascending: false })
+              .order('created_at', { ascending: false }) // Mencoba created_at, jika error ubah ke 'id'
               .limit(1)
               .single();
 
@@ -95,7 +92,7 @@ function App() {
     }
   }, []);
 
-  // --- 3. AMBIL STATISTIK GLOBAL DARI SUPABASE ---
+  // --- AMBIL STATISTIK GLOBAL DARI SUPABASE ---
   const fetchStatistics = async () => {
     try {
       const { data, error } = await supabase.from('peminatan').select('rekomendasi');
@@ -103,35 +100,28 @@ function App() {
 
       if (data && data.length > 0) {
         const counts = { AI: 0, SE: 0, CN: 0 };
-
-        // Hitung murni data yang valid saja
         data.forEach((row) => {
           if (counts[row.rekomendasi] !== undefined) {
             counts[row.rekomendasi]++;
           }
         });
 
-        const totalValid = counts.AI + counts.SE + counts.CN;
-
         setStats({
-          total: totalValid,
+          total: data.length,
           AI: counts.AI,
           SE: counts.SE,
           CN: counts.CN,
         });
-      } else {
-        setStats({ total: 0, AI: 0, SE: 0, CN: 0 });
       }
     } catch (err) {
-      console.error('Gagal mengambil statistik database:', err);
+      console.error('Gagal mengambil statistik:', err);
     }
   };
 
-  // --- 4. LOGIKA TOMBOL SUBMIT KUIS LOKAL (VIA WEB) ---
+  // --- LOGIKA SUBMIT WEB LOKAL ---
   const handleWebQuizSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Tembak backend Railway untuk hitung rumus matematika AI/SE/CN
       const response = await fetch('https://web-production-f68e4.up.railway.app/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -141,213 +131,223 @@ function App() {
       const jsonResult = await response.json();
       const hasilPeminatan = jsonResult.rekomendasi;
 
-      // Simpan langsung hasil hitungan ke Supabase
       await supabase
         .from('peminatan')
         .insert([{ nama: formData.nama, kelas: formData.kelas, rekomendasi: hasilPeminatan }]);
 
-      // Set states untuk memicu tampilan halaman hasil kustom
       setRekomendasi(hasilPeminatan);
       setNamaResponden(formData.nama);
-      await fetchStatistics(); // Refresh statistik terbaru
+      await fetchStatistics();
       setPage('result');
     } catch (err) {
-      console.error('Gagal memproses kuis lokal:', err);
-      alert('Terjadi gangguan koneksi ke server AI Railway!');
+      console.error('Error kuis lokal:', err);
+      alert('Terjadi gangguan koneksi ke server Railway!');
     }
   };
 
-  // Kalkulasi Persentase Grafik Donat Terlindungi (Anti Pembulatan Rusak)
+  // Perhitungan persentase donat chart
   const pctAI = stats.total > 0 ? Math.round((stats.AI / stats.total) * 100) : 0;
   const pctSE = stats.total > 0 ? Math.round((stats.SE / stats.total) * 100) : 0;
-  const pctCN = stats.total > 0 ? 100 - pctAI - pctSE : 0; // Sisa dikunci agar total selalu tepat 100%
+  const pctCN = stats.total > 0 ? 100 - pctAI - pctSE : 0;
 
   return (
-    <div className="app-app">
-      {/* --- NAVBAR ATAS --- */}
-      <header className="navbar-container">
-        <div className="navbar-brand">🎯 Smart Decision Engine</div>
-        <div className="navbar-badge">{stats.total} Responden Teranalisis</div>
-      </header>
+    <div className="app-container">
+      {/* NAVBAR ASLI KAMU */}
+      <nav className="navbar">
+        <div className="navbar-left">
+          <div className="app-logo">🧠</div>
+          <div>
+            <h1>Sistem Rekomendasi Peminatan</h1>
+            <p>Teknik Informatika • Smart Decision Engine</p>
+          </div>
+        </div>
+        <div className="respondent-badge">
+          <span className="badge-dot"></span>
+          {stats.total} Responden
+        </div>
+      </nav>
 
-      {/* ================= HALAMAN WELCOME ================= */}
-      {page === 'welcome' && (
-        <div className="main-container">
-          <div className="welcome-card">
-            <div className="welcome-icon">🚀</div>
-            <h2 className="welcome-title">Temukan Peminatan IT Terbaikmu</h2>
-            <p className="welcome-subtitle">
+      <main className="content">
+        {/* ================= WELCOME SCREEN ================= */}
+        {page === 'welcome' && (
+          <div className="welcome-card card">
+            <h2>Temukan Peminatan IT Terbaikmu</h2>
+            <p>
               Analisis profesional menggabungkan rekam jejak akademik, minat teknologi, dan tes
-              kecenderungan psikologi karier (Psikometri).
+              kecenderungan psikologi karier.
             </p>
+            <div
+              style={{ display: 'flex', gap: '15px', justifyContent: 'center', margin: '20px 0' }}
+            >
+              <button className="btn btn-primary" onClick={() => setPage('quiz')}>
+                Mulai Profiling (Web)
+              </button>
+              <button className="btn btn-secondary" onClick={() => setPage('result')}>
+                Lihat Statistik Live 📊
+              </button>
+            </div>
+          </div>
+        )}
 
-            <div className="welcome-tracks">
-              {Object.entries(TRACK_DETAILS).map(([key, val]) => (
-                <div
-                  key={key}
-                  className="track-preview"
-                  style={{ borderColor: val.borderColor, backgroundColor: val.bgColor }}
+        {/* ================= FORM KUIS LOKAL WEB ================= */}
+        {page === 'quiz' && (
+          <div className="quiz-card card">
+            <h2>Formulir Profiling Peminatan IT</h2>
+            <form onSubmit={handleWebQuizSubmit} className="form-grid">
+              <div className="form-group">
+                <label>Nama Lengkap / Inisial</label>
+                <input
+                  type="text"
+                  required
+                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Kelas / Angkatan</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: IF-4A"
+                  onChange={(e) => setFormData({ ...formData, kelas: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Nilai Machine Learning / Statistika</label>
+                <select
+                  onChange={(e) =>
+                    setFormData({ ...formData, nilai_ml: parseFloat(e.target.value) })
+                  }
                 >
-                  <div className="track-preview-icon">{val.icon}</div>
-                  <div className="track-preview-name" style={{ color: val.textColor }}>
-                    {val.name}
+                  <option value="4.0">4.0 - A</option>
+                  <option value="3.5">3.5 - B+</option>
+                  <option value="3.0">3.0 - B</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Nilai Rekayasa Perangkat Lunak / PBO</label>
+                <select
+                  onChange={(e) =>
+                    setFormData({ ...formData, nilai_rpl: parseFloat(e.target.value) })
+                  }
+                >
+                  <option value="4.0">4.0 - A</option>
+                  <option value="3.5">3.5 - B+</option>
+                  <option value="3.0">3.0 - B</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Nilai Jaringan Komputer / OS</label>
+                <select
+                  onChange={(e) =>
+                    setFormData({ ...formData, nilai_jarkom: parseFloat(e.target.value) })
+                  }
+                >
+                  <option value="4.0">4.0 - A</option>
+                  <option value="3.5">3.5 - B+</option>
+                  <option value="3.0">3.0 - B</option>
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="btn btn-primary btn-block"
+                style={{ gridColumn: '1/-1', marginTop: '15px' }}
+              >
+                Hitung Hasil AI Rekomendasi 🎯
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ================= HALAMAN HASIL & GRAFIK (AMAN DARI BLANK) ================= */}
+        {page === 'result' && (
+          <div className="result-layout">
+            {/* 🎯 KARTU REKOMENDASI PERSONAL (Hanya muncul jika ada datanya) */}
+            {rekomendasi && TRACK_DETAILS[rekomendasi] && (
+              <div
+                className="result-card card animate-fade-in"
+                style={{ borderTop: `5px solid ${TRACK_DETAILS[rekomendasi].borderColor}` }}
+              >
+                <div style={{ fontSize: '48px', marginBottom: '10px' }}>
+                  {TRACK_DETAILS[rekomendasi].icon}
+                </div>
+                <h2 style={{ color: TRACK_DETAILS[rekomendasi].textColor }}>
+                  Hasil Rekomendasi {namaResponden ? `untuk ${namaResponden}` : 'Anda'}:{' '}
+                  {rekomendasi}
+                </h2>
+                <p style={{ margin: '15px 0', lineHeight: '1.6', color: '#4b5563' }}>
+                  {TRACK_DETAILS[rekomendasi].description}
+                </p>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setRekomendasi(null);
+                    setNamaResponden('');
+                    setPage('welcome');
+                  }}
+                >
+                  Isi Ulang 🔄
+                </button>
+              </div>
+            )}
+
+            {/* 📊 KARTU GRAFIK STATISTIK (Aman, Selalu muncul dalam kondisi apa pun!) */}
+            <div className="stats-card card">
+              <h2>📊 Analisis Database Responden</h2>
+              <div className="stats-content">
+                <div className="chart-container">
+                  <div
+                    className="donut-chart"
+                    style={{
+                      background: `conic-gradient(
+                      #3b82f6 0% ${pctAI}%, 
+                      #10b981 ${pctAI}% ${pctAI + pctSE}%, 
+                      #f59e0b ${pctAI + pctSE}% 100%
+                    )`,
+                    }}
+                  >
+                    <div className="chart-center">
+                      <span className="total-count">{stats.total}</span>
+                      <span className="total-label">TOTAL</span>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <button className="btn-start" onClick={() => setPage('quiz')}>
-              Mulai Profiling Karier (Web)
-            </button>
-            <button className="btn-view-stats" onClick={() => setPage('result')}>
-              Lihat Statistik & Hasil Responden Live 📊
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ================= HALAMAN KUIS WEB LOCAL ================= */}
-      {page === 'quiz' && (
-        <div className="main-container">
-          <form onSubmit={handleWebQuizSubmit} className="quiz-card">
-            <h3>Formulir Profiling Peminatan IT</h3>
-
-            <label>Nama Lengkap / Inisial</label>
-            <input
-              type="text"
-              required
-              onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-            />
-
-            <label>Kelas / Angkatan</label>
-            <input
-              type="text"
-              required
-              placeholder="Contoh: IF-4A"
-              onChange={(e) => setFormData({ ...formData, kelas: e.target.value })}
-            />
-
-            <label>Nilai Machine Learning / Statistika</label>
-            <select
-              onChange={(e) => setFormData({ ...formData, nilai_ml: parseFloat(e.target.value) })}
-            >
-              <option value="4.0">4.0 - A</option>
-              <option value="3.5">3.5 - B+</option>
-              <option value="3.0">3.0 - B</option>
-              <option value="2.5">2.5 - C+</option>
-              <option value="2.0">2.0 - C</option>
-            </select>
-
-            <label>Nilai Rekayasa Perangkat Lunak / PBO</label>
-            <select
-              onChange={(e) => setFormData({ ...formData, nilai_rpl: parseFloat(e.target.value) })}
-            >
-              <option value="4.0">4.0 - A</option>
-              <option value="3.5">3.5 - B+</option>
-              <option value="3.0">3.0 - B</option>
-              <option value="2.5">2.5 - C+</option>
-              <option value="2.0">2.0 - C</option>
-            </select>
-
-            <label>Nilai Jaringan Komputer / OS</label>
-            <select
-              onChange={(e) =>
-                setFormData({ ...formData, nilai_jarkom: parseFloat(e.target.value) })
-              }
-            >
-              <option value="4.0">4.0 - A</option>
-              <option value="3.5">3.5 - B+</option>
-              <option value="3.0">3.0 - B</option>
-              <option value="2.5">2.5 - C+</option>
-              <option value="2.0">2.0 - C</option>
-            </select>
-
-            <button type="submit" className="btn-submit">
-              Hitung Hasil AI Rekomendasi 🎯
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* ================= HALAMAN OUTPUT HASIL & GRAFIK (AMAN DARI BLANK) ================= */}
-      {page === 'result' && (
-        <div className="main-container flex-row-responsive">
-          {/* 🎯 BAGIAN KARTU REKOMENDASI INDIVIDU (Hanya muncul jika rekomendasi ada nilainya) */}
-          {rekomendasi && TRACK_DETAILS[rekomendasi] && (
-            <div
-              className="result-card animate-fade-in"
-              style={{ borderColor: TRACK_DETAILS[rekomendasi].borderColor }}
-            >
-              <div className="result-badge-icon">{TRACK_DETAILS[rekomendasi].icon}</div>
-              <h2 className="result-title">
-                Hasil Rekomendasi {namaResponden ? `untuk ${namaResponden}` : 'Anda'}:
-              </h2>
-              <div
-                className="result-highlight-name"
-                style={{ color: TRACK_DETAILS[rekomendasi].textColor }}
-              >
-                {TRACK_DETAILS[rekomendasi].name}
-              </div>
-              <p className="result-desc-text">{TRACK_DETAILS[rekomendasi].description}</p>
-              <button
-                className="btn-retry"
-                onClick={() => {
-                  setRekomendasi(null);
-                  setNamaResponden('');
-                  setPage('welcome');
-                }}
-              >
-                Kembali Ke Awal 🔄
-              </button>
-            </div>
-          )}
-
-          {/* 📊 BAGIAN GRAFIK LINGKARAN DONAT (Aman & Selalu Muncul Walau dari Gform) */}
-          <div className="stats-card">
-            <h3 className="stats-title">📊 Sebaran Data Responden Live</h3>
-
-            <div className="donut-chart-wrapper">
-              <div
-                className="donut-chart"
-                style={{
-                  background: `conic-gradient(
-                  #3b82f6 0% ${pctAI}%, 
-                  #10b981 ${pctAI}% ${pctAI + pctSE}%, 
-                  #f59e0b ${pctAI + pctSE}% 100%
-                )`,
-                }}
-              >
-                <div className="donut-chart-center">
-                  <span className="donut-center-num">{stats.total}</span>
-                  <span className="donut-center-lbl">TOTAL</span>
+                <div className="legend-container">
+                  <div className="legend-item">
+                    <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
+                    <span>
+                      AI: <strong>{stats.AI}</strong> ({pctAI}%)
+                    </span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-color" style={{ backgroundColor: '#10b981' }}></span>
+                    <span>
+                      SE: <strong>{stats.SE}</strong> ({pctSE}%)
+                    </span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
+                    <span>
+                      CN: <strong>{stats.CN}</strong> ({pctCN}%)
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="chart-legend-list">
-              <div className="legend-item">
-                <span className="dot dot-ai"></span> AI: <strong>{stats.AI} Mahasiswa</strong> (
-                {pctAI}%)
-              </div>
-              <div className="legend-item">
-                <span className="dot dot-se"></span> SE: <strong>{stats.SE} Mahasiswa</strong> (
-                {pctSE}%)
-              </div>
-              <div className="legend-item">
-                <span className="dot dot-cn"></span> CN: <strong>{stats.CN} Mahasiswa</strong> (
-                {pctCN}%)
-              </div>
+              {/* Tombol kembali tambahan jika diakses via pintu belakang Gform */}
+              {!rekomendasi && (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setPage('welcome')}
+                  style={{ marginTop: '20px', width: '100%' }}
+                >
+                  Ke Halaman Utama 🏠
+                </button>
+              )}
             </div>
-
-            {/* Jika user masuk lewat Gform / melihat statistik saja, tampilkan tombol balik home ini */}
-            {!rekomendasi && (
-              <button className="btn-primary-home" onClick={() => setPage('welcome')}>
-                Ke Halaman Utama Web 🏠
-              </button>
-            )}
           </div>
-        </div>
-      )}
+        )}
+      </main>
     </div>
   );
 }
