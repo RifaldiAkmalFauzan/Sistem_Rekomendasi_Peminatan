@@ -187,6 +187,37 @@ body {
   opacity: 0.9;
 }
 
+/* ============ PROGRESS BAR ============ */
+.progress-wrap {
+  padding: 0 4px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.progress-track {
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+/* ============ SECTION TAGS ============ */
 .section-tag {
   display: inline-flex;
   align-items: center;
@@ -208,6 +239,22 @@ body {
   color: #b45309;
 }
 
+.tag-info {
+  background-color: #ede9fe;
+  color: #7c3aed;
+}
+
+.tag-psycho-1 {
+  background-color: #fae8ff;
+  color: #86198f;
+}
+
+.tag-psycho-2 {
+  background-color: #fbcfe8;
+  color: #9d174d;
+}
+
+/* ============ FORM ELEMENTS ============ */
 .q-title {
   font-size: 20px;
   font-weight: 800;
@@ -250,6 +297,7 @@ body {
   font-size: 15px;
   outline: none;
   transition: 0.2s;
+  background-color: white;
 }
 
 .field-input:focus,
@@ -258,6 +306,66 @@ body {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+/* ============ LIKERT SCALE BUTTONS ============ */
+.likert-group {
+  margin-bottom: 24px;
+}
+
+.likert-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.likert-btn {
+  flex: 1;
+  min-width: 55px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.likert-btn:hover {
+  border-color: #c4b5fd;
+  background-color: #f5f3ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+}
+
+.likert-btn.selected {
+  border-color: #4f46e5;
+  background-color: #eef2ff;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+  transform: translateY(-2px);
+}
+
+.likert-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.likert-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  text-align: center;
+}
+
+.big-label {
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+/* ============ NAVIGATION BUTTONS ============ */
 .nav-row {
   display: flex;
   justify-content: space-between;
@@ -272,7 +380,15 @@ body {
   border-radius: 10px;
   background-color: white;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  color: #475569;
+}
+
+.btn-back:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
 }
 
 .btn-next {
@@ -282,9 +398,36 @@ body {
   background: linear-gradient(135deg, #4f46e5, #7c3aed);
   color: white;
   font-weight: 700;
+  font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
+.btn-next:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.btn-next:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-submit {
+  padding: 14px 24px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* ============ RESULT HERO ============ */
 .result-hero {
   text-align: center;
   padding: 40px;
@@ -350,8 +493,14 @@ body {
   max-width: 240px;
   margin: 0 auto;
   display: block;
+  transition: all 0.2s ease;
 }
 
+.btn-redo:hover {
+  background-color: #f8fafc;
+}
+
+/* ============ STATS SECTION ============ */
 .stats-header {
   margin-bottom: 24px;
   border-bottom: 1px solid #f1f5f9;
@@ -460,6 +609,7 @@ body {
   font-weight: 700;
 }
 
+/* ============ SPINNER ============ */
 .spinner {
   width: 20px;
   height: 20px;
@@ -467,6 +617,7 @@ body {
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  display: inline-block;
 }
 
 @keyframes spin {
@@ -475,6 +626,7 @@ body {
   }
 }
 
+/* ============ BUTTON VIEW STATS ============ */
 .btn-view-stats {
   width: 100%;
   padding: 12px;
@@ -494,18 +646,21 @@ body {
   border-color: #cbd5e1;
 }
 
-/* RESPONSIVE UNTUK HP */
+/* ============ RESPONSIVE UNTUK HP ============ */
 @media (max-width: 600px) {
   .app-header {
     padding: 12px 16px;
   }
+
   .header-title {
     font-size: 15px;
   }
+
   .welcome-tracks {
     grid-template-columns: 1fr;
     gap: 12px;
   }
+
   .track-preview {
     display: flex;
     align-items: center;
@@ -513,16 +668,66 @@ body {
     gap: 16px;
     padding: 16px;
   }
+
   .track-preview-icon {
     font-size: 28px;
     margin: 0;
   }
+
+  /* Likert buttons responsive */
+  .likert-row {
+    gap: 6px;
+  }
+
+  .likert-btn {
+    padding: 10px 4px;
+    min-width: 45px;
+  }
+
+  .likert-emoji {
+    font-size: 20px;
+  }
+
+  .likert-label {
+    font-size: 10px;
+  }
+
+  .big-label {
+    font-size: 11px;
+    line-height: 1.2;
+    word-wrap: break-word;
+  }
+
+  /* Chart responsive */
   .chart-layout {
     flex-direction: column;
     gap: 24px;
   }
+
   .chart-container {
     width: 140px;
     height: 140px;
+  }
+
+  /* Navigation buttons responsive */
+  .nav-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-back,
+  .btn-next {
+    width: 100%;
+    text-align: center;
+  }
+
+  .welcome-card,
+  .question-card,
+  .stats-section {
+    padding: 20px;
+  }
+
+  .result-hero {
+    padding: 24px;
   }
 }
