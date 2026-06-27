@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import './App.css';
 
-// 📢 KONFIGURASI SUPABASE (Menggunakan nama key Netlify kamu)
+// 📢 KONFIGURASI SUPABASE
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -44,7 +44,6 @@ function App() {
   const [namaResponden, setNamaResponden] = useState('');
   const [stats, setStats] = useState({ total: 0, AI: 0, SE: 0, CN: 0 });
 
-  // Data Formulir Kuis Lokal (Untuk pengisian via Web)
   const [formData, setFormData] = useState({
     nama: '',
     kelas: '',
@@ -71,11 +70,10 @@ function App() {
       if (queryParams.get('source') === 'gform') {
         const fetchLatestGformData = async () => {
           try {
-            // Ambil data paling baru masuk dari database Supabase
             const { data, error } = await supabase
               .from('peminatan')
               .select('nama, rekomendasi')
-              .order('created_at', { ascending: false }) // Mencoba created_at, jika error ubah ke 'id'
+              .order('created_at', { ascending: false })
               .limit(1)
               .single();
 
@@ -145,75 +143,123 @@ function App() {
     }
   };
 
-  // Perhitungan persentase donat chart
   const pctAI = stats.total > 0 ? Math.round((stats.AI / stats.total) * 100) : 0;
   const pctSE = stats.total > 0 ? Math.round((stats.SE / stats.total) * 100) : 0;
   const pctCN = stats.total > 0 ? 100 - pctAI - pctSE : 0;
 
+  // Hitung stroke-dasharray untuk SVG donut chart
+  const circumference = 2 * Math.PI * 52; // radius 52
+  const aiDash = (pctAI / 100) * circumference;
+  const seDash = (pctSE / 100) * circumference;
+  const cnDash = (pctCN / 100) * circumference;
+
   return (
     <div className="app-container">
-      {/* NAVBAR ASLI KAMU */}
-      <nav className="navbar">
-        <div className="navbar-left">
-          <div className="app-logo">🧠</div>
+      {/* HEADER */}
+      <header className="app-header">
+        <div className="header-brand">
+          <div className="header-logo">🧠</div>
           <div>
-            <h1>Sistem Rekomendasi Peminatan</h1>
-            <p>Teknik Informatika • Smart Decision Engine</p>
+            <div className="header-title">Sistem Rekomendasi Peminatan</div>
+            <div className="header-sub">Teknik Informatika • Smart Decision Engine</div>
           </div>
         </div>
-        <div className="respondent-badge">
-          <span className="badge-dot"></span>
+        <div className="resp-badge">
+          <span className="resp-dot"></span>
           {stats.total} Responden
         </div>
-      </nav>
+      </header>
 
-      <main className="content">
+      {/* MAIN CONTENT */}
+      <main className="main-container">
         {/* ================= WELCOME SCREEN ================= */}
         {page === 'welcome' && (
-          <div className="welcome-card card">
-            <h2>Temukan Peminatan IT Terbaikmu</h2>
-            <p>
+          <div className="welcome-card">
+            <div className="welcome-icon">🎯</div>
+            <h1 className="welcome-title">Temukan Peminatan IT Terbaikmu</h1>
+            <p className="welcome-subtitle">
               Analisis profesional menggabungkan rekam jejak akademik, minat teknologi, dan tes
               kecenderungan psikologi karier.
             </p>
-            <div
-              style={{ display: 'flex', gap: '15px', justifyContent: 'center', margin: '20px 0' }}
-            >
-              <button className="btn btn-primary" onClick={() => setPage('quiz')}>
-                Mulai Profiling (Web)
-              </button>
-              <button className="btn btn-secondary" onClick={() => setPage('result')}>
-                Lihat Statistik Live 📊
-              </button>
+
+            <div className="welcome-tracks">
+              <div
+                className="track-preview"
+                style={{
+                  borderColor: TRACK_DETAILS.AI.borderColor,
+                  backgroundColor: TRACK_DETAILS.AI.bgColor,
+                }}
+              >
+                <div className="track-preview-icon">{TRACK_DETAILS.AI.icon}</div>
+                <div className="track-preview-name">{TRACK_DETAILS.AI.name}</div>
+              </div>
+              <div
+                className="track-preview"
+                style={{
+                  borderColor: TRACK_DETAILS.SE.borderColor,
+                  backgroundColor: TRACK_DETAILS.SE.bgColor,
+                }}
+              >
+                <div className="track-preview-icon">{TRACK_DETAILS.SE.icon}</div>
+                <div className="track-preview-name">{TRACK_DETAILS.SE.name}</div>
+              </div>
+              <div
+                className="track-preview"
+                style={{
+                  borderColor: TRACK_DETAILS.CN.borderColor,
+                  backgroundColor: TRACK_DETAILS.CN.bgColor,
+                }}
+              >
+                <div className="track-preview-icon">{TRACK_DETAILS.CN.icon}</div>
+                <div className="track-preview-name">{TRACK_DETAILS.CN.name}</div>
+              </div>
             </div>
+
+            <button className="btn-start" onClick={() => setPage('quiz')}>
+              Mulai Profiling (Web) ✨
+            </button>
+            <button className="btn-view-stats" onClick={() => setPage('result')}>
+              Lihat Statistik Live 📊
+            </button>
           </div>
         )}
 
         {/* ================= FORM KUIS LOKAL WEB ================= */}
         {page === 'quiz' && (
-          <div className="quiz-card card">
-            <h2>Formulir Profiling Peminatan IT</h2>
-            <form onSubmit={handleWebQuizSubmit} className="form-grid">
-              <div className="form-group">
-                <label>Nama Lengkap / Inisial</label>
+          <div className="question-card">
+            <span className="section-tag tag-identity">📝 Identitas</span>
+            <h2 className="q-title">Formulir Profiling Peminatan IT</h2>
+            <p className="q-sub">Lengkapi data berikut untuk mendapatkan rekomendasi terbaik.</p>
+
+            <form onSubmit={handleWebQuizSubmit} className="identity-form">
+              <div className="field-group">
+                <label className="field-label">Nama Lengkap / Inisial</label>
                 <input
                   type="text"
+                  className="field-input"
                   required
+                  placeholder="Masukkan nama Anda"
                   onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
                 />
               </div>
-              <div className="form-group">
-                <label>Kelas / Angkatan</label>
+
+              <div className="field-group">
+                <label className="field-label">Kelas / Angkatan</label>
                 <input
                   type="text"
+                  className="field-input"
                   required
                   placeholder="Contoh: IF-4A"
                   onChange={(e) => setFormData({ ...formData, kelas: e.target.value })}
                 />
               </div>
-              <div className="form-group">
-                <label>Nilai Machine Learning / Statistika</label>
+
+              <span className="section-tag tag-grade">📊 Nilai Akademik</span>
+
+              <div className="field-group">
+                <label className="field-label">Nilai Machine Learning / Statistika</label>
                 <select
+                  className="field-select"
                   onChange={(e) =>
                     setFormData({ ...formData, nilai_ml: parseFloat(e.target.value) })
                   }
@@ -223,9 +269,11 @@ function App() {
                   <option value="3.0">3.0 - B</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label>Nilai Rekayasa Perangkat Lunak / PBO</label>
+
+              <div className="field-group">
+                <label className="field-label">Nilai Rekayasa Perangkat Lunak / PBO</label>
                 <select
+                  className="field-select"
                   onChange={(e) =>
                     setFormData({ ...formData, nilai_rpl: parseFloat(e.target.value) })
                   }
@@ -235,9 +283,11 @@ function App() {
                   <option value="3.0">3.0 - B</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label>Nilai Jaringan Komputer / OS</label>
+
+              <div className="field-group">
+                <label className="field-label">Nilai Jaringan Komputer / OS</label>
                 <select
+                  className="field-select"
                   onChange={(e) =>
                     setFormData({ ...formData, nilai_jarkom: parseFloat(e.target.value) })
                   }
@@ -247,38 +297,40 @@ function App() {
                   <option value="3.0">3.0 - B</option>
                 </select>
               </div>
-              <button
-                type="submit"
-                className="btn btn-primary btn-block"
-                style={{ gridColumn: '1/-1', marginTop: '15px' }}
-              >
-                Hitung Hasil AI Rekomendasi 🎯
-              </button>
+
+              <div className="nav-row">
+                <button type="button" className="btn-back" onClick={() => setPage('welcome')}>
+                  ← Kembali
+                </button>
+                <button type="submit" className="btn-next">
+                  Hitung Hasil AI Rekomendasi 🎯
+                </button>
+              </div>
             </form>
           </div>
         )}
 
-        {/* ================= HALAMAN HASIL & GRAFIK (AMAN DARI BLANK) ================= */}
+        {/* ================= HALAMAN HASIL & GRAFIK ================= */}
         {page === 'result' && (
-          <div className="result-layout">
-            {/* 🎯 KARTU REKOMENDASI PERSONAL (Hanya muncul jika ada datanya) */}
+          <>
+            {/* Kartu Rekomendasi Personal */}
             {rekomendasi && TRACK_DETAILS[rekomendasi] && (
-              <div
-                className="result-card card animate-fade-in"
-                style={{ borderTop: `5px solid ${TRACK_DETAILS[rekomendasi].borderColor}` }}
-              >
-                <div style={{ fontSize: '48px', marginBottom: '10px' }}>
-                  {TRACK_DETAILS[rekomendasi].icon}
+              <div className="result-hero">
+                <div className="result-confetti">🎉</div>
+                <div className="result-title">Hasil Rekomendasi</div>
+                <div className="user-badge">
+                  <span>👤</span> {namaResponden || 'Anda'}
                 </div>
-                <h2 style={{ color: TRACK_DETAILS[rekomendasi].textColor }}>
-                  Hasil Rekomendasi {namaResponden ? `untuk ${namaResponden}` : 'Anda'}:{' '}
-                  {rekomendasi}
+                <span className="result-track-icon">{TRACK_DETAILS[rekomendasi].icon}</span>
+                <h2
+                  className="result-track-name"
+                  style={{ color: TRACK_DETAILS[rekomendasi].textColor }}
+                >
+                  {TRACK_DETAILS[rekomendasi].name}
                 </h2>
-                <p style={{ margin: '15px 0', lineHeight: '1.6', color: '#4b5563' }}>
-                  {TRACK_DETAILS[rekomendasi].description}
-                </p>
+                <p className="result-track-desc">{TRACK_DETAILS[rekomendasi].description}</p>
                 <button
-                  className="btn btn-secondary"
+                  className="btn-redo"
                   onClick={() => {
                     setRekomendasi(null);
                     setNamaResponden('');
@@ -290,62 +342,107 @@ function App() {
               </div>
             )}
 
-            {/* 📊 KARTU GRAFIK STATISTIK (Aman, Selalu muncul dalam kondisi apa pun!) */}
-            <div className="stats-card card">
-              <h2>📊 Analisis Database Responden</h2>
-              <div className="stats-content">
+            {/* Kartu Statistik */}
+            <div className="stats-section">
+              <div className="stats-header">
+                <h2 className="stats-title">📊 Analisis Database Responden</h2>
+              </div>
+
+              <div className="chart-layout">
                 <div className="chart-container">
-                  <div
-                    className="donut-chart"
-                    style={{
-                      background: `conic-gradient(
-                      #3b82f6 0% ${pctAI}%, 
-                      #10b981 ${pctAI}% ${pctAI + pctSE}%, 
-                      #f59e0b ${pctAI + pctSE}% 100%
-                    )`,
-                    }}
-                  >
-                    <div className="chart-center">
-                      <span className="total-count">{stats.total}</span>
-                      <span className="total-label">TOTAL</span>
-                    </div>
+                  <svg className="chart-svg" viewBox="0 0 120 120">
+                    <circle className="chart-bg-circle" cx="60" cy="60" r="52" />
+                    {/* AI Segment */}
+                    <circle
+                      className="chart-segment"
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="#3b82f6"
+                      strokeDasharray={`${aiDash} ${circumference}`}
+                      strokeDashoffset="0"
+                    />
+                    {/* SE Segment */}
+                    <circle
+                      className="chart-segment"
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="#10b981"
+                      strokeDasharray={`${seDash} ${circumference}`}
+                      strokeDashoffset={-aiDash}
+                    />
+                    {/* CN Segment */}
+                    <circle
+                      className="chart-segment"
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="#f59e0b"
+                      strokeDasharray={`${cnDash} ${circumference}`}
+                      strokeDashoffset={-(aiDash + seDash)}
+                    />
+                  </svg>
+                  <div className="chart-center-text">
+                    <span className="center-num">{stats.total}</span>
+                    <span className="center-label">Total</span>
                   </div>
                 </div>
 
                 <div className="legend-container">
                   <div className="legend-item">
-                    <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
-                    <span>
-                      AI: <strong>{stats.AI}</strong> ({pctAI}%)
-                    </span>
+                    <div className="legend-left">
+                      <div
+                        className="legend-color-dot"
+                        style={{ backgroundColor: '#3b82f6' }}
+                      ></div>
+                      <span className="legend-name">AI</span>
+                    </div>
+                    <div className="legend-right">
+                      <span>{stats.AI}</span>
+                      <span style={{ color: '#94a3b8' }}>({pctAI}%)</span>
+                    </div>
                   </div>
                   <div className="legend-item">
-                    <span className="legend-color" style={{ backgroundColor: '#10b981' }}></span>
-                    <span>
-                      SE: <strong>{stats.SE}</strong> ({pctSE}%)
-                    </span>
+                    <div className="legend-left">
+                      <div
+                        className="legend-color-dot"
+                        style={{ backgroundColor: '#10b981' }}
+                      ></div>
+                      <span className="legend-name">SE</span>
+                    </div>
+                    <div className="legend-right">
+                      <span>{stats.SE}</span>
+                      <span style={{ color: '#94a3b8' }}>({pctSE}%)</span>
+                    </div>
                   </div>
                   <div className="legend-item">
-                    <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
-                    <span>
-                      CN: <strong>{stats.CN}</strong> ({pctCN}%)
-                    </span>
+                    <div className="legend-left">
+                      <div
+                        className="legend-color-dot"
+                        style={{ backgroundColor: '#f59e0b' }}
+                      ></div>
+                      <span className="legend-name">CN</span>
+                    </div>
+                    <div className="legend-right">
+                      <span>{stats.CN}</span>
+                      <span style={{ color: '#94a3b8' }}>({pctCN}%)</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Tombol kembali tambahan jika diakses via pintu belakang Gform */}
               {!rekomendasi && (
                 <button
-                  className="btn btn-primary"
+                  className="btn-start"
                   onClick={() => setPage('welcome')}
-                  style={{ marginTop: '20px', width: '100%' }}
+                  style={{ marginTop: '24px' }}
                 >
                   Ke Halaman Utama 🏠
                 </button>
               )}
             </div>
-          </div>
+          </>
         )}
       </main>
     </div>
