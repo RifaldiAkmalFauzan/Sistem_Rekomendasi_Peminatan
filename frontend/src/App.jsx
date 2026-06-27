@@ -42,6 +42,7 @@ function App() {
   const [page, setPage] = useState('welcome');
   const [rekomendasi, setRekomendasi] = useState(null);
   const [namaResponden, setNamaResponden] = useState('');
+  const [kelasResponden, setKelasResponden] = useState('');
   const [stats, setStats] = useState({ total: 0, AI: 0, SE: 0, CN: 0 });
 
   const [formData, setFormData] = useState({
@@ -58,37 +59,6 @@ function App() {
     motivasi_karir: 3,
     lingkungan_ideal: 3,
   });
-
-  // --- LOGIKA SYNC DATA DARI GOOGLE FORM VIA URL ---
-  useEffect(() => {
-    fetchStatistics();
-
-    const queryParams = new URLSearchParams(window.location.search);
-    if (queryParams.get('page') === 'result') {
-      setPage('result');
-
-      if (queryParams.get('source') === 'gform') {
-        const fetchLatestGformData = async () => {
-          try {
-            const { data, error } = await supabase
-              .from('peminatan')
-              .select('nama, rekomendasi')
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-
-            if (data) {
-              setRekomendasi(data.rekomendasi);
-              setNamaResponden(data.nama);
-            }
-          } catch (err) {
-            console.error('Gagal sinkronisasi data Google Form:', err);
-          }
-        };
-        fetchLatestGformData();
-      }
-    }
-  }, []);
 
   // --- AMBIL STATISTIK GLOBAL DARI SUPABASE ---
   const fetchStatistics = async () => {
@@ -116,6 +86,49 @@ function App() {
     }
   };
 
+  // --- LOGIKA SYNC DATA DARI GOOGLE FORM VIA URL ---
+  useEffect(() => {
+    fetchStatistics();
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const pageParam = queryParams.get('page');
+    const sourceParam = queryParams.get('source');
+
+    if (pageParam === 'result' && sourceParam === 'gform') {
+      console.log('🔍 Mencari data terbaru dari Google Form...');
+
+      const fetchLatestGformData = async () => {
+        try {
+          // Ambil data terbaru yang memiliki rekomendasi (tidak null)
+          const { data, error } = await supabase
+            .from('peminatan')
+            .select('*')
+            .not('rekomendasi', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          console.log('📊 Data dari Supabase:', data);
+          console.log('❌ Error:', error);
+
+          if (data && data.length > 0) {
+            const latestData = data[0];
+            console.log('✅ Data ditemukan:', latestData);
+
+            setRekomendasi(latestData.rekomendasi);
+            setNamaResponden(latestData.nama || 'Unknown');
+            setKelasResponden(latestData.kelas || '');
+          } else {
+            console.log('⚠️ Tidak ada data dengan rekomendasi valid');
+          }
+        } catch (err) {
+          console.error('❌ Gagal mengambil data:', err);
+        }
+      };
+
+      fetchLatestGformData();
+    }
+  }, []);
+
   // --- LOGIKA SUBMIT WEB LOKAL ---
   const handleWebQuizSubmit = async (e) => {
     e.preventDefault();
@@ -129,12 +142,27 @@ function App() {
       const jsonResult = await response.json();
       const hasilPeminatan = jsonResult.rekomendasi;
 
-      await supabase
-        .from('peminatan')
-        .insert([{ nama: formData.nama, kelas: formData.kelas, rekomendasi: hasilPeminatan }]);
+      await supabase.from('peminatan').insert([
+        {
+          nama: formData.nama,
+          kelas: formData.kelas,
+          nilai_ml: formData.nilai_ml,
+          nilai_rpl: formData.nilai_rpl,
+          nilai_jarkom: formData.nilai_jarkom,
+          minat_ai: formData.minat_ai,
+          minat_se: formData.minat_se,
+          minat_cn: formData.minat_cn,
+          gaya_kerja: formData.gaya_kerja,
+          problem_solving: formData.problem_solving,
+          motivasi_karir: formData.motivasi_karir,
+          lingkungan_ideal: formData.lingkungan_ideal,
+          rekomendasi: hasilPeminatan,
+        },
+      ]);
 
       setRekomendasi(hasilPeminatan);
       setNamaResponden(formData.nama);
+      setKelasResponden(formData.kelas);
       await fetchStatistics();
       setPage('result');
     } catch (err) {
@@ -143,12 +171,13 @@ function App() {
     }
   };
 
+  // Perhitungan persentase donat chart
   const pctAI = stats.total > 0 ? Math.round((stats.AI / stats.total) * 100) : 0;
   const pctSE = stats.total > 0 ? Math.round((stats.SE / stats.total) * 100) : 0;
   const pctCN = stats.total > 0 ? 100 - pctAI - pctSE : 0;
 
   // Hitung stroke-dasharray untuk SVG donut chart
-  const circumference = 2 * Math.PI * 52; // radius 52
+  const circumference = 2 * Math.PI * 52;
   const aiDash = (pctAI / 100) * circumference;
   const seDash = (pctSE / 100) * circumference;
   const cnDash = (pctCN / 100) * circumference;
@@ -263,6 +292,7 @@ function App() {
                   onChange={(e) =>
                     setFormData({ ...formData, nilai_ml: parseFloat(e.target.value) })
                   }
+                  defaultValue="4.0"
                 >
                   <option value="4.0">4.0 - A</option>
                   <option value="3.5">3.5 - B+</option>
@@ -277,6 +307,7 @@ function App() {
                   onChange={(e) =>
                     setFormData({ ...formData, nilai_rpl: parseFloat(e.target.value) })
                   }
+                  defaultValue="4.0"
                 >
                   <option value="4.0">4.0 - A</option>
                   <option value="3.5">3.5 - B+</option>
@@ -291,6 +322,7 @@ function App() {
                   onChange={(e) =>
                     setFormData({ ...formData, nilai_jarkom: parseFloat(e.target.value) })
                   }
+                  defaultValue="4.0"
                 >
                   <option value="4.0">4.0 - A</option>
                   <option value="3.5">3.5 - B+</option>
@@ -317,9 +349,10 @@ function App() {
             {rekomendasi && TRACK_DETAILS[rekomendasi] && (
               <div className="result-hero">
                 <div className="result-confetti">🎉</div>
-                <div className="result-title">Hasil Rekomendasi</div>
+                <div className="result-title">Hasil Rekomendasi Pribadi</div>
                 <div className="user-badge">
-                  <span>👤</span> {namaResponden || 'Anda'}
+                  <span>👤</span> {namaResponden || 'Unknown'}
+                  {kelasResponden && <span> • {kelasResponden}</span>}
                 </div>
                 <span className="result-track-icon">{TRACK_DETAILS[rekomendasi].icon}</span>
                 <h2
@@ -334,6 +367,7 @@ function App() {
                   onClick={() => {
                     setRekomendasi(null);
                     setNamaResponden('');
+                    setKelasResponden('');
                     setPage('welcome');
                   }}
                 >
@@ -342,10 +376,13 @@ function App() {
               </div>
             )}
 
-            {/* Kartu Statistik */}
+            {/* Kartu Statistik Global */}
             <div className="stats-section">
               <div className="stats-header">
-                <h2 className="stats-title">📊 Analisis Database Responden</h2>
+                <h2 className="stats-title">📊 Statistik Seluruh Responden</h2>
+                <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>
+                  Total: {stats.total} responden
+                </p>
               </div>
 
               <div className="chart-layout">
