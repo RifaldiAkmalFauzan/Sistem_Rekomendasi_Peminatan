@@ -1,3 +1,10 @@
 fastapi
 pydantic
 uvicorn
+fastapi
+uvicorn
+pydantic
+scikit-learn
+pandas
+numpy
+supabase
