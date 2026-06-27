@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-client';
+// UBAH BARIS INI:
+import { createClient } from '@supabase/supabase-js';
 import './App.css';
 
 // 📢 1. PENGATURAN SUPABASE (Sudah otomatis membaca dari file .env kamu)
