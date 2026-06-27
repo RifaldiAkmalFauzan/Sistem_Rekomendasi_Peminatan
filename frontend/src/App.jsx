@@ -40,6 +40,7 @@ const TRACK_DETAILS = {
 function App() {
   // --- STATES ---
   const [page, setPage] = useState('welcome');
+  const [quizStep, setQuizStep] = useState(1);
   const [rekomendasi, setRekomendasi] = useState(null);
   const [namaResponden, setNamaResponden] = useState('');
   const [kelasResponden, setKelasResponden] = useState('');
@@ -99,11 +100,9 @@ function App() {
 
     console.log('🚀 APP LOADED - URL Params:', { pageParam, sourceParam });
 
-    // 🔥 PENTING: Cek URL dulu sebelum fetch statistics
     if (pageParam === 'result' && sourceParam === 'gform') {
       console.log('🔍 Google Form mode detected! Switching to result page...');
 
-      // Langsung set page ke result
       setPage('result');
       setIsLoading(true);
 
@@ -120,17 +119,11 @@ function App() {
 
           if (data && data.length > 0) {
             const latestData = data[0];
-            console.log('✅ Data terbaru ditemukan:', {
-              nama: latestData.nama,
-              kelas: latestData.kelas,
-              rekomendasi: latestData.rekomendasi,
-            });
+            console.log('✅ Data terbaru ditemukan:', latestData);
 
             setRekomendasi(latestData.rekomendasi);
             setNamaResponden(latestData.nama || 'Unknown');
             setKelasResponden(latestData.kelas || '');
-          } else {
-            console.log('⚠️ Tidak ada data dengan rekomendasi valid');
           }
         } catch (err) {
           console.error('❌ Gagal mengambil data:', err);
@@ -142,9 +135,27 @@ function App() {
       fetchLatestGformData();
     }
 
-    // Fetch statistics selalu dijalankan
     fetchStatistics();
   }, []);
+
+  // --- HANDLER MULTI-STEP FORM ---
+  const nextStep = (e) => {
+    if (e) e.preventDefault(); // 🔥 PENTING: Cegah submit form!
+
+    if (quizStep < 5) {
+      setQuizStep(quizStep + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const prevStep = (e) => {
+    if (e) e.preventDefault(); // 🔥 PENTING: Cegah submit form!
+
+    if (quizStep > 1) {
+      setQuizStep(quizStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // --- LOGIKA SUBMIT WEB LOKAL ---
   const handleWebQuizSubmit = async (e) => {
@@ -197,11 +208,242 @@ function App() {
   const pctSE = stats.total > 0 ? Math.round((stats.SE / stats.total) * 100) : 0;
   const pctCN = stats.total > 0 ? 100 - pctAI - pctSE : 0;
 
-  // Hitung stroke-dasharray untuk SVG donut chart
   const circumference = 2 * Math.PI * 52;
   const aiDash = (pctAI / 100) * circumference;
   const seDash = (pctSE / 100) * circumference;
   const cnDash = (pctCN / 100) * circumference;
+
+  // --- RENDER MULTI-STEP FORM ---
+  const renderQuizStep = () => {
+    switch (quizStep) {
+      case 1:
+        return (
+          <>
+            <span className="section-tag tag-identity">📝 Step 1/5 - Identitas</span>
+            <h2 className="q-title">Data Diri Mahasiswa</h2>
+            <p className="q-sub">Lengkapi identitas Anda terlebih dahulu.</p>
+
+            <div className="field-group">
+              <label className="field-label">Nama Lengkap / Inisial</label>
+              <input
+                type="text"
+                className="field-input"
+                required
+                placeholder="Masukkan nama Anda"
+                value={formData.nama}
+                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+              />
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">Kelas / Angkatan</label>
+              <input
+                type="text"
+                className="field-input"
+                required
+                placeholder="Contoh: IF-4A"
+                value={formData.kelas}
+                onChange={(e) => setFormData({ ...formData, kelas: e.target.value })}
+              />
+            </div>
+          </>
+        );
+
+      case 2:
+        return (
+          <>
+            <span className="section-tag tag-grade">📊 Step 2/5 - Nilai Akademik</span>
+            <h2 className="q-title">Rekam Jejak Akademik</h2>
+            <p className="q-sub">Pilih nilai terakhir Anda untuk mata kuliah terkait.</p>
+
+            <div className="field-group">
+              <label className="field-label">Nilai Machine Learning / Statistika</label>
+              <select
+                className="field-select"
+                value={formData.nilai_ml}
+                onChange={(e) => setFormData({ ...formData, nilai_ml: parseFloat(e.target.value) })}
+              >
+                <option value="4.0">4.0 - A</option>
+                <option value="3.5">3.5 - B+</option>
+                <option value="3.0">3.0 - B</option>
+                <option value="2.5">2.5 - C+</option>
+                <option value="2.0">2.0 - C</option>
+              </select>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">Nilai Rekayasa Perangkat Lunak / PBO</label>
+              <select
+                className="field-select"
+                value={formData.nilai_rpl}
+                onChange={(e) =>
+                  setFormData({ ...formData, nilai_rpl: parseFloat(e.target.value) })
+                }
+              >
+                <option value="4.0">4.0 - A</option>
+                <option value="3.5">3.5 - B+</option>
+                <option value="3.0">3.0 - B</option>
+                <option value="2.5">2.5 - C+</option>
+                <option value="2.0">2.0 - C</option>
+              </select>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">Nilai Jaringan Komputer / OS</label>
+              <select
+                className="field-select"
+                value={formData.nilai_jarkom}
+                onChange={(e) =>
+                  setFormData({ ...formData, nilai_jarkom: parseFloat(e.target.value) })
+                }
+              >
+                <option value="4.0">4.0 - A</option>
+                <option value="3.5">3.5 - B+</option>
+                <option value="3.0">3.0 - B</option>
+                <option value="2.5">2.5 - C+</option>
+                <option value="2.0">2.0 - C</option>
+              </select>
+            </div>
+          </>
+        );
+
+      case 3:
+        return (
+          <>
+            <span className="section-tag tag-info">💡 Step 3/5 - Minat & Ketertarikan</span>
+            <h2 className="q-title">Seberapa Tertarik Anda?</h2>
+            <p className="q-sub">Nilai 1 (Sangat Tidak Tertarik) sampai 5 (Sangat Tertarik).</p>
+
+            {[
+              { label: 'Minat terhadap Artificial Intelligence (AI)', field: 'minat_ai' },
+              { label: 'Minat terhadap Software Engineering (SE)', field: 'minat_se' },
+              { label: 'Minat terhadap Computer Networking & Cloud (CN)', field: 'minat_cn' },
+            ].map((item) => (
+              <div key={item.field} className="field-group">
+                <label className="field-label">{item.label}</label>
+                <div className="likert-row">
+                  {[1, 2, 3, 4, 5].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      className={`likert-btn ${formData[item.field] === val ? 'selected' : ''}`}
+                      onClick={() => setFormData({ ...formData, [item.field]: val })}
+                    >
+                      <span className="likert-emoji">
+                        {val === 1
+                          ? '😴'
+                          : val === 2
+                            ? '😐'
+                            : val === 3
+                              ? '🤔'
+                              : val === 4
+                                ? '😊'
+                                : '🤩'}
+                      </span>
+                      <span className="likert-label">{val}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        );
+
+      case 4:
+        return (
+          <>
+            <span className="section-tag tag-psycho-1">🧠 Step 4/5 - Gaya Kerja</span>
+            <h2 className="q-title">Bagaimana Cara Anda Bekerja?</h2>
+            <p className="q-sub">Nilai 1 (Sangat Tidak Setuju) sampai 5 (Sangat Setuju).</p>
+
+            {[
+              { label: 'Saya senang bekerja dengan data dan analisis pola', field: 'gaya_kerja' },
+              {
+                label: 'Saya suka memecahkan masalah kompleks secara sistematis',
+                field: 'problem_solving',
+              },
+            ].map((item) => (
+              <div key={item.field} className="field-group">
+                <label className="field-label">{item.label}</label>
+                <div className="likert-row">
+                  {[1, 2, 3, 4, 5].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      className={`likert-btn ${formData[item.field] === val ? 'selected' : ''}`}
+                      onClick={() => setFormData({ ...formData, [item.field]: val })}
+                    >
+                      <span className="likert-emoji">
+                        {val === 1
+                          ? '👎'
+                          : val === 2
+                            ? '🤷'
+                            : val === 3
+                              ? '👍'
+                              : val === 4
+                                ? '💪'
+                                : '🎯'}
+                      </span>
+                      <span className="likert-label">{val}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        );
+
+      case 5:
+        return (
+          <>
+            <span className="section-tag tag-psycho-2">🎯 Step 5/5 - Motivasi Karier</span>
+            <h2 className="q-title">Apa yang Mendorong Anda?</h2>
+            <p className="q-sub">Pilih yang paling sesuai dengan visi karier Anda.</p>
+
+            {[
+              {
+                label: 'Saya termotivasi oleh inovasi teknologi dan riset',
+                field: 'motivasi_karir',
+              },
+              {
+                label: 'Saya nyaman dengan infrastruktur dan stabilitas sistem',
+                field: 'lingkungan_ideal',
+              },
+            ].map((item) => (
+              <div key={item.field} className="field-group">
+                <label className="field-label">{item.label}</label>
+                <div className="likert-row">
+                  {[1, 2, 3, 4, 5].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      className={`likert-btn ${formData[item.field] === val ? 'selected' : ''}`}
+                      onClick={() => setFormData({ ...formData, [item.field]: val })}
+                    >
+                      <span className="likert-emoji">
+                        {val === 1
+                          ? '❌'
+                          : val === 2
+                            ? '🤔'
+                            : val === 3
+                              ? '✅'
+                              : val === 4
+                                ? '🌟'
+                                : '🔥'}
+                      </span>
+                      <span className="likert-label">{val}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="app-container">
@@ -265,7 +507,13 @@ function App() {
               </div>
             </div>
 
-            <button className="btn-start" onClick={() => setPage('quiz')}>
+            <button
+              className="btn-start"
+              onClick={() => {
+                setPage('quiz');
+                setQuizStep(1);
+              }}
+            >
               Mulai Profiling (Web) ✨
             </button>
             <button className="btn-view-stats" onClick={() => setPage('result')}>
@@ -274,96 +522,47 @@ function App() {
           </div>
         )}
 
-        {/* ================= FORM KUIS LOKAL WEB ================= */}
+        {/* ================= MULTI-STEP FORM QUIZ ================= */}
         {page === 'quiz' && (
           <div className="question-card">
-            <span className="section-tag tag-identity">📝 Identitas</span>
-            <h2 className="q-title">Formulir Profiling Peminatan IT</h2>
-            <p className="q-sub">Lengkapi data berikut untuk mendapatkan rekomendasi terbaik.</p>
-
             <form onSubmit={handleWebQuizSubmit} className="identity-form">
-              <div className="field-group">
-                <label className="field-label">Nama Lengkap / Inisial</label>
-                <input
-                  type="text"
-                  className="field-input"
-                  required
-                  placeholder="Masukkan nama Anda"
-                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                />
+              {renderQuizStep()}
+
+              {/* Progress Bar */}
+              <div className="progress-wrap">
+                <div className="progress-label">
+                  <span>Progress</span>
+                  <span>{quizStep}/5</span>
+                </div>
+                <div className="progress-track">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${(quizStep / 5) * 100}%` }}
+                  ></div>
+                </div>
               </div>
 
-              <div className="field-group">
-                <label className="field-label">Kelas / Angkatan</label>
-                <input
-                  type="text"
-                  className="field-input"
-                  required
-                  placeholder="Contoh: IF-4A"
-                  onChange={(e) => setFormData({ ...formData, kelas: e.target.value })}
-                />
-              </div>
-
-              <span className="section-tag tag-grade">📊 Nilai Akademik</span>
-
-              <div className="field-group">
-                <label className="field-label">Nilai Machine Learning / Statistika</label>
-                <select
-                  className="field-select"
-                  onChange={(e) =>
-                    setFormData({ ...formData, nilai_ml: parseFloat(e.target.value) })
-                  }
-                  defaultValue="4.0"
-                >
-                  <option value="4.0">4.0 - A</option>
-                  <option value="3.5">3.5 - B+</option>
-                  <option value="3.0">3.0 - B</option>
-                </select>
-              </div>
-
-              <div className="field-group">
-                <label className="field-label">Nilai Rekayasa Perangkat Lunak / PBO</label>
-                <select
-                  className="field-select"
-                  onChange={(e) =>
-                    setFormData({ ...formData, nilai_rpl: parseFloat(e.target.value) })
-                  }
-                  defaultValue="4.0"
-                >
-                  <option value="4.0">4.0 - A</option>
-                  <option value="3.5">3.5 - B+</option>
-                  <option value="3.0">3.0 - B</option>
-                </select>
-              </div>
-
-              <div className="field-group">
-                <label className="field-label">Nilai Jaringan Komputer / OS</label>
-                <select
-                  className="field-select"
-                  onChange={(e) =>
-                    setFormData({ ...formData, nilai_jarkom: parseFloat(e.target.value) })
-                  }
-                  defaultValue="4.0"
-                >
-                  <option value="4.0">4.0 - A</option>
-                  <option value="3.5">3.5 - B+</option>
-                  <option value="3.0">3.0 - B</option>
-                </select>
-              </div>
-
+              {/* Navigation Buttons - 🔥 PASTIKAN TYPE="BUTTON" */}
               <div className="nav-row">
-                <button type="button" className="btn-back" onClick={() => setPage('welcome')}>
-                  ← Kembali
-                </button>
-                <button type="submit" className="btn-next" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <span className="spinner"></span> Memproses...
-                    </>
-                  ) : (
-                    'Hitung Hasil AI Rekomendasi 🎯'
-                  )}
-                </button>
+                {quizStep > 1 ? (
+                  <button type="button" className="btn-back" onClick={prevStep}>
+                    ← Sebelumnya
+                  </button>
+                ) : (
+                  <button type="button" className="btn-back" onClick={() => setPage('welcome')}>
+                    ← Kembali
+                  </button>
+                )}
+
+                {quizStep < 5 ? (
+                  <button type="button" className="btn-next" onClick={nextStep}>
+                    Selanjutnya →
+                  </button>
+                ) : (
+                  <button type="submit" className="btn-next" disabled={isLoading}>
+                    {isLoading ? 'Memproses...' : 'Lihat Hasil Rekomendasi 🎯'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -372,19 +571,8 @@ function App() {
         {/* ================= HALAMAN HASIL & GRAFIK ================= */}
         {page === 'result' && (
           <>
-            {/* Loading State */}
-            {isLoading && (
-              <div className="welcome-card" style={{ textAlign: 'center' }}>
-                <div
-                  className="spinner"
-                  style={{ margin: '0 auto', width: '40px', height: '40px' }}
-                ></div>
-                <p style={{ marginTop: '16px', color: '#64748b' }}>Mengambil data terbaru...</p>
-              </div>
-            )}
-
             {/* Kartu Rekomendasi Personal */}
-            {!isLoading && rekomendasi && TRACK_DETAILS[rekomendasi] && (
+            {rekomendasi && TRACK_DETAILS[rekomendasi] && (
               <div className="result-hero">
                 <div className="result-confetti">🎉</div>
                 <div className="result-title">Hasil Rekomendasi Pribadi</div>
@@ -427,7 +615,6 @@ function App() {
                 <div className="chart-container">
                   <svg className="chart-svg" viewBox="0 0 120 120">
                     <circle className="chart-bg-circle" cx="60" cy="60" r="52" />
-                    {/* AI Segment */}
                     <circle
                       className="chart-segment"
                       cx="60"
@@ -437,7 +624,6 @@ function App() {
                       strokeDasharray={`${aiDash} ${circumference}`}
                       strokeDashoffset="0"
                     />
-                    {/* SE Segment */}
                     <circle
                       className="chart-segment"
                       cx="60"
@@ -447,7 +633,6 @@ function App() {
                       strokeDasharray={`${seDash} ${circumference}`}
                       strokeDashoffset={-aiDash}
                     />
-                    {/* CN Segment */}
                     <circle
                       className="chart-segment"
                       cx="60"
@@ -506,16 +691,6 @@ function App() {
                   </div>
                 </div>
               </div>
-
-              {!rekomendasi && !isLoading && (
-                <button
-                  className="btn-start"
-                  onClick={() => setPage('welcome')}
-                  style={{ marginTop: '24px' }}
-                >
-                  Ke Halaman Utama 🏠
-                </button>
-              )}
             </div>
           </>
         )}
