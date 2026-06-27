@@ -44,6 +44,7 @@ function App() {
   const [namaResponden, setNamaResponden] = useState('');
   const [kelasResponden, setKelasResponden] = useState('');
   const [stats, setStats] = useState({ total: 0, AI: 0, SE: 0, CN: 0 });
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     nama: '',
@@ -63,7 +64,11 @@ function App() {
   // --- AMBIL STATISTIK GLOBAL DARI SUPABASE ---
   const fetchStatistics = async () => {
     try {
-      const { data, error } = await supabase.from('peminatan').select('rekomendasi');
+      const { data, error } = await supabase
+        .from('peminatan')
+        .select('rekomendasi')
+        .not('rekomendasi', 'is', null);
+
       if (error) throw error;
 
       if (data && data.length > 0) {
@@ -88,18 +93,22 @@ function App() {
 
   // --- LOGIKA SYNC DATA DARI GOOGLE FORM VIA URL ---
   useEffect(() => {
-    fetchStatistics();
-
     const queryParams = new URLSearchParams(window.location.search);
     const pageParam = queryParams.get('page');
     const sourceParam = queryParams.get('source');
 
+    console.log('🚀 APP LOADED - URL Params:', { pageParam, sourceParam });
+
+    // 🔥 PENTING: Cek URL dulu sebelum fetch statistics
     if (pageParam === 'result' && sourceParam === 'gform') {
-      console.log('🔍 Mencari data terbaru dari Google Form...');
+      console.log('🔍 Google Form mode detected! Switching to result page...');
+
+      // Langsung set page ke result
+      setPage('result');
+      setIsLoading(true);
 
       const fetchLatestGformData = async () => {
         try {
-          // Ambil data terbaru yang memiliki rekomendasi (tidak null)
           const { data, error } = await supabase
             .from('peminatan')
             .select('*')
@@ -107,12 +116,15 @@ function App() {
             .order('created_at', { ascending: false })
             .limit(1);
 
-          console.log('📊 Data dari Supabase:', data);
-          console.log('❌ Error:', error);
+          console.log('📊 Supabase Response:', { data, error });
 
           if (data && data.length > 0) {
             const latestData = data[0];
-            console.log('✅ Data ditemukan:', latestData);
+            console.log('✅ Data terbaru ditemukan:', {
+              nama: latestData.nama,
+              kelas: latestData.kelas,
+              rekomendasi: latestData.rekomendasi,
+            });
 
             setRekomendasi(latestData.rekomendasi);
             setNamaResponden(latestData.nama || 'Unknown');
@@ -122,16 +134,23 @@ function App() {
           }
         } catch (err) {
           console.error('❌ Gagal mengambil data:', err);
+        } finally {
+          setIsLoading(false);
         }
       };
 
       fetchLatestGformData();
     }
+
+    // Fetch statistics selalu dijalankan
+    fetchStatistics();
   }, []);
 
   // --- LOGIKA SUBMIT WEB LOKAL ---
   const handleWebQuizSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+
     try {
       const response = await fetch('https://web-production-f68e4.up.railway.app/predict', {
         method: 'POST',
@@ -168,6 +187,8 @@ function App() {
     } catch (err) {
       console.error('Error kuis lokal:', err);
       alert('Terjadi gangguan koneksi ke server Railway!');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -334,8 +355,14 @@ function App() {
                 <button type="button" className="btn-back" onClick={() => setPage('welcome')}>
                   ← Kembali
                 </button>
-                <button type="submit" className="btn-next">
-                  Hitung Hasil AI Rekomendasi 🎯
+                <button type="submit" className="btn-next" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <span className="spinner"></span> Memproses...
+                    </>
+                  ) : (
+                    'Hitung Hasil AI Rekomendasi 🎯'
+                  )}
                 </button>
               </div>
             </form>
@@ -345,8 +372,19 @@ function App() {
         {/* ================= HALAMAN HASIL & GRAFIK ================= */}
         {page === 'result' && (
           <>
+            {/* Loading State */}
+            {isLoading && (
+              <div className="welcome-card" style={{ textAlign: 'center' }}>
+                <div
+                  className="spinner"
+                  style={{ margin: '0 auto', width: '40px', height: '40px' }}
+                ></div>
+                <p style={{ marginTop: '16px', color: '#64748b' }}>Mengambil data terbaru...</p>
+              </div>
+            )}
+
             {/* Kartu Rekomendasi Personal */}
-            {rekomendasi && TRACK_DETAILS[rekomendasi] && (
+            {!isLoading && rekomendasi && TRACK_DETAILS[rekomendasi] && (
               <div className="result-hero">
                 <div className="result-confetti">🎉</div>
                 <div className="result-title">Hasil Rekomendasi Pribadi</div>
@@ -469,7 +507,7 @@ function App() {
                 </div>
               </div>
 
-              {!rekomendasi && (
+              {!rekomendasi && !isLoading && (
                 <button
                   className="btn-start"
                   onClick={() => setPage('welcome')}
