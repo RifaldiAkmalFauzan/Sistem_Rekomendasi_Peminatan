@@ -104,6 +104,11 @@ export default function App() {
 
   useEffect(() => {
     fetchStatistics();
+    // 🌟 TAMBAHKAN 4 BARIS KODE INI DI SINI 🌟
+    const queryParams = new URLSearchParams(window.location.search);
+    if (queryParams.get('page') === 'result') {
+      setPage('result');
+    }
   }, []);
 
   const handleSubmit = async (e) => {
@@ -194,31 +199,27 @@ export default function App() {
         </div>
       </header>
 
-      {page === 'welcome' && (
+ {page === 'welcome' && (
         <div className="main-container">
           <div className="welcome-card">
             <div className="welcome-icon">🎯</div>
             <h2 className="welcome-title">Temukan Peminatan IT Terbaikmu</h2>
-            <p className="welcome-subtitle">
-              Analisis profesional menggabungkan rekam jejak akademik, minat teknologi, dan tes
-              kecenderungan psikologi karier (Psikometri).
-            </p>
+            <p className="welcome-subtitle">Analisis profesional menggabungkan rekam jejak akademik, minat teknologi, dan tes kecenderungan psikologi karier (Psikometri).</p>
             <div className="welcome-tracks">
               {Object.entries(TRACK_DETAILS).map(([key, val]) => (
-                <div
-                  key={key}
-                  className="track-preview"
-                  style={{ borderColor: val.borderColor, backgroundColor: val.bgColor }}
-                >
+                <div key={key} className="track-preview" style={{ borderColor: val.borderColor, backgroundColor: val.bgColor }}>
                   <div className="track-preview-icon">{val.icon}</div>
-                  <div className="track-preview-name" style={{ color: val.textColor }}>
-                    {val.name}
-                  </div>
+                  <div className="track-preview-name" style={{ color: val.textColor }}>{val.name}</div>
                 </div>
               ))}
             </div>
-            <button className="btn-start" onClick={() => setPage('quiz')}>
-              Mulai Profiling Karier
+            
+            {/* Tombol Utama Tetap Ada */}
+            <button className="btn-start" onClick={() => setPage('quiz')}>Mulai Profiling Karier</button>
+            
+            {/* 🌟 TAMBAHKAN TOMBOL SHORTCUT INI DI BAWAHNYA 🌟 */}
+            <button className="btn-view-stats" onClick={() => setPage('result')}>
+              Lihat Statistik & Hasil Responden Live 📊
             </button>
           </div>
         </div>

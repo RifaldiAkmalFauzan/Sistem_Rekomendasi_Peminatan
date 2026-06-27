@@ -513,6 +513,24 @@ body {
   }
 }
 
+.btn-view-stats {
+  width: 100%;
+  padding: 12px;
+  background: #ffffff;
+  color: #4f46e5;
+  border: 2px solid #e0e7ff;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: all 0.2s ease;
+}
+
+.btn-view-stats:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
 /* RESPONSIVE UNTUK HP */
 @media (max-width: 600px) {
   .app-header {
